@@ -1,6 +1,7 @@
 {
   "name": "serverless-lambda-arn",
   "version": "0.1.1",
+  "main": "index.js",
   "engines": {
     "node": ">=4.0"
   },
@@ -26,11 +27,10 @@
     "amazon web services",
     "serverless.com"
   ],
-  "main": "index.js",
   "bin": {},
   "scripts": {},
   "devDependencies": {},
   "dependencies": {
-    "lodash.foreach": "^4.5.0"
+    "lodash": "^4.17.4"
   }
 }
