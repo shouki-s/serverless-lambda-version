@@ -17,8 +17,6 @@ class LambdaArn {
       .compiledCloudFormationTemplate.Resources;
     const lambdaArns = this.getResourcesWLambdaAssoc(resources);
 
-    this.serverless.cli.log(`Resources: ${JSON.stringify(lambdaArns)}`);
-
     _.forEach(lambdaArns, value => {
       const associations =
         value.Properties.DistributionConfig.DefaultCacheBehavior
@@ -27,9 +25,12 @@ class LambdaArn {
       _.forEach(associations, association => {
         const arn = association.LambdaFunctionARN;
         const versionRef = this.getArnAndVersion(compiledResources, arn);
-
-        this.serverless.cli.log(`versionRef: ${JSON.stringify(versionRef)}`);
         if (arn && versionRef) {
+          this.serverless.cli.log(
+            `serverless-lambda-version: injecting arn+version for ${JSON.stringify(
+              arn
+            )}`
+          );
           association.LambdaFunctionARN = versionRef;
         }
       });
