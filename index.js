@@ -1,13 +1,13 @@
-"use strict";
+'use strict';
 
-const _ = require("lodash");
+const _ = require('lodash');
 
 class LambdaArn {
   constructor(serverless, options) {
     this.serverless = serverless;
     this.options = options;
     this.hooks = {
-      "before:package:finalize": this.updateLambdaVersion.bind(this)
+      'before:package:finalize': this.updateLambdaVersion.bind(this)
     };
   }
 
@@ -17,14 +17,18 @@ class LambdaArn {
       .compiledCloudFormationTemplate.Resources;
     const lambdaArns = this.getResourcesWLambdaAssoc(resources);
 
-    _.forEach(lambdaArns, (value, key1) => {
+    this.serverless.cli.log(`Resources: ${JSON.stringify(lambdaArns)}`);
+
+    _.forEach(lambdaArns, value => {
       const associations =
         value.Properties.DistributionConfig.DefaultCacheBehavior
           .LambdaFunctionAssociations;
 
-      _.forEach(associations, (association, key2) => {
-        let arn = association.LambdaFunctionARN;
+      _.forEach(associations, association => {
+        const arn = association.LambdaFunctionARN;
         const versionRef = this.getArnAndVersion(compiledResources, arn);
+
+        this.serverless.cli.log(`versionRef: ${JSON.stringify(versionRef)}`);
         if (arn && versionRef) {
           association.LambdaFunctionARN = versionRef;
         }
@@ -33,39 +37,43 @@ class LambdaArn {
   }
 
   getArnAndVersion(resources, funcNormName) {
-    const key = _.findKey(
-      resources,
-      r =>
-        r.Type === "AWS::Lambda::Version" &&
-        r.Properties.FunctionName.Ref === funcNormName
-    );
-
+    const key = _.findKey(resources, {
+      Type: 'AWS::Lambda::Version',
+      Properties: {
+        FunctionName: {
+          Ref: funcNormName
+        }
+      }
+    });
     return key
       ? {
-          "Fn::Join": [
-            "",
-            [
-              { "Fn::GetAtt": [funcNormName, "Arn"] },
-              ":",
-              { "Fn::GetAtt": [key, "Version"] }
-            ]
+        'Fn::Join': [
+          '',
+          [
+            { 'Fn::GetAtt': [ funcNormName, 'Arn' ] },
+            ':',
+            { 'Fn::GetAtt': [ key, 'Version' ] }
           ]
-        }
+        ]
+      }
       : undefined;
   }
 
   getResourcesWLambdaAssoc(resources) {
-    return _.pickBy(
-      resources,
-      r =>
-        r.Type === "AWS::CloudFront::Distribution" &&
-        r.Properties.DistributionConfig &&
-        r.Properties.DistributionConfig.DefaultCacheBehavior &&
-        r.Properties.DistributionConfig.DefaultCacheBehavior
-          .LambdaFunctionAssociations &&
-        r.Properties.DistributionConfig.DefaultCacheBehavior
-          .LambdaFunctionAssociations
-    );
+    return _.pickBy(resources, {
+      Type: 'AWS::CloudFront::Distribution',
+      Properties: {
+        DistributionConfig: {
+          DefaultCacheBehavior: {
+            LambdaFunctionAssociations: [
+              {
+                EventType: 'origin-request'
+              }
+            ]
+          }
+        }
+      }
+    });
   }
 }
 
