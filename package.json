@@ -1,6 +1,6 @@
 {
   "name": "serverless-lambda-version",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description":
     "Serverless plugin to auto update lambda function version for Lambda@Edge LambdaFunctionAssociations",
   "main": "index.js",
