@@ -15,25 +15,19 @@ class LambdaArn {
     const resources = this.serverless.service.resources.Resources;
     const compiledResources = this.serverless.service.provider
       .compiledCloudFormationTemplate.Resources;
-    const lambdaArns = this.getResourcesWLambdaAssoc(resources);
+    const associations = this.getResourcesWLambdaAssoc(resources);
 
-    _.forEach(lambdaArns, value => {
-      const associations =
-        value.Properties.DistributionConfig.DefaultCacheBehavior
-          .LambdaFunctionAssociations;
-
-      _.forEach(associations, association => {
-        const arn = association.LambdaFunctionARN;
-        const versionRef = this.getArnAndVersion(compiledResources, arn);
-        if (arn && versionRef) {
-          this.serverless.cli.log(
-            `serverless-lambda-version: injecting arn+version for ${JSON.stringify(
-              arn
-            )}`
-          );
-          association.LambdaFunctionARN = versionRef;
-        }
-      });
+    _.forEach(associations, association => {
+      const arn = association.LambdaFunctionARN;
+      const versionRef = this.getArnAndVersion(compiledResources, arn);
+      if (arn && versionRef) {
+        this.serverless.cli.log(
+          `serverless-lambda-version: injecting arn+version for ${JSON.stringify(
+            arn
+          )}`
+        );
+        association.LambdaFunctionARN = versionRef;
+      }
     });
   }
 
@@ -61,20 +55,15 @@ class LambdaArn {
   }
 
   getResourcesWLambdaAssoc(resources) {
-    return _.pickBy(resources, {
+    const distributions = _.pickBy(resources, {
       Type: 'AWS::CloudFront::Distribution',
-      Properties: {
-        DistributionConfig: {
-          DefaultCacheBehavior: {
-            LambdaFunctionAssociations: [
-              {
-                EventType: 'origin-request'
-              }
-            ]
-          }
-        }
-      }
     });
+    const lambdaAssoc = _.flatMap(distributions, dist => {
+      const assoc = _.get(dist, 'Properties.DistributionConfig.DefaultCacheBehavior.LambdaFunctionAssociations', []);
+      const behaviors = _.get(dist, 'Properties.DistributionConfig.CacheBehaviors', []);
+      return _.concat(assoc, _.flatMap(behaviors, behavior => _.get(behavior, 'LambdaFunctionAssociations', [])));
+    });
+    return lambdaAssoc;
   }
 }
 
